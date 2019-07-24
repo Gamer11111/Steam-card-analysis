@@ -112,7 +112,7 @@ public class Analysis {
     @SuppressWarnings({"UseSpecificCatch", "CallToPrintStackTrace"})
     static public ArrayList<String> getCSV() {
         try {
-
+            // Look wiki on how to get csv of games
             Reader in = new FileReader("game.csv");
             Iterable<CSVRecord> records = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(in);
            //Using CSV common from Apache for csv files
