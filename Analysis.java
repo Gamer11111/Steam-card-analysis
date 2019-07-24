@@ -95,6 +95,7 @@ public class Analysis {
 
                 } catch (HttpStatusException http) {
                     if (http.getStatusCode() == 429) {
+                       // 4 minutes is safe, does not work below it
                         log.warn("Too many requests,waiting upto 4 minutes");
                         Thread.sleep(240000);
                      
@@ -147,6 +148,7 @@ public class Analysis {
                 
             } catch (HttpStatusException http) {
                 if (http.getStatusCode() == 500) {
+               // Sometimes some characters don't parse properly
                     log.warn("Internal Server Error, cannot get price history for " + i);
                 }
 
