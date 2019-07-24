@@ -9,7 +9,6 @@ import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Scanner;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -37,10 +36,13 @@ public class Analysis {
     public static void main(String[] args) throws Exception {
         PropertyConfigurator.configure(log4jConfPath);
         Scanner sc = new Scanner(System.in);
+       //See wiki - https://github.com/VaibhavBarot/Steam-card-analysis/wiki for info on how to get cookie
         log.info("Enter cookie");
         cookie = sc.nextLine();
+       //The minimum profitable (possibly breakeven) for games
         log.info("Enter set price");
         price = sc.nextDouble();
+       //Number of total cards sold per week
         log.info("Enter quantity per week");
         acceptableQuantity = sc.nextInt();
         getCSV();
@@ -59,7 +61,7 @@ public class Analysis {
                         new FileWriter("Profit.txt", true)
                 ), true
         );
-        Iterator iter = gamename.iterator();
+        
         for (String i : appid) {
             log.info("(" + totalGames + "\\" + appid.size() + ")");
             int retries = 0;
@@ -112,8 +114,9 @@ public class Analysis {
 
             Reader in = new FileReader("game.csv");
             Iterable<CSVRecord> records = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(in);
-           
+           //Using CSV common from Apache for csv files
             for (CSVRecord record : records) {
+            //While parsing java does not accept comma for numerical values like 2,300
                 if (Double.parseDouble(record.get(5).replace(",",""))>= price) {
                     appid.add(record.get(15));
                     gamename.add(record.get(0));
@@ -127,19 +130,19 @@ public class Analysis {
         return appid;
     }
 
-    @SuppressWarnings({"SleepWhileInLoop", "CallToPrintStackTrace"})
+    @SuppressWarnings({"CallToPrintStackTrace"})
     static public int getPriceHistory(String currentAppid) throws Exception {
         int currentQuantity = 0;
 
         for (String i : singleGame) {
             try {
-
+            // Common steam link for fetching items, change parameters accordingly
                 String priceLink = "https://steamcommunity.com/market/pricehistory/?country=US&currency=1&appid=753&market_hash_name=";
-
+            // Standard url encoding - https://www.w3schools.com/tags/ref_urlencode.asp 
                 String pricehistory = Jsoup.connect(priceLink + currentAppid + "-" + i.replace("&","%26").replace(" ", "%20").replace(",","%2C").replace("#","%23")).cookie("steamLoginSecure", cookie).ignoreContentType(true).execute().body();
 
                 currentQuantity += analyze(pricehistory);
-
+            
                 Thread.sleep(1000);
                 
             } catch (HttpStatusException http) {
@@ -163,17 +166,17 @@ public class Analysis {
 
         JSONParser parser = new JSONParser();
         JSONObject prices = (JSONObject) parser.parse(pricehistory);
-
+         // Fetching all price histories
         JSONArray array = (JSONArray) prices.get("prices");
 
-        for (Object o : array) {
-            JSONArray k = (JSONArray) o;
-            String dateInString = (String) k.get(0);
+        for (Object dates : array) {
+            JSONArray day = (JSONArray) dates;
+            String dateInString = (String) day.get(0);
             soldDate = formatter.parse(dateInString);
 
             dayDifference = todayDate.getTime() - soldDate.getTime();
             dayDifference = dayDifference / (1000 * 60 * 60 * 24);
-            totalQuantityPerGame = totalQuantityPerGame + quantitySold(dayDifference, k);
+            totalQuantityPerGame = totalQuantityPerGame + quantitySold(dayDifference, day);
 
         }
         return totalQuantityPerGame;
@@ -183,6 +186,7 @@ public class Analysis {
     static public int quantitySold(Long dayDifference, JSONArray k) {
         int quantitySold = 0;
         String currentQuantity;
+       //change number of days accordingly
         if (dayDifference <= 7) {
 
             currentQuantity = (String) (k.get(2));
